@@ -25,7 +25,94 @@
 #include "camera.h"
 
 
+typedef struct{
+	float h;
+	float s;
+	float v;	
+
+}hsv;
+
 ALLEGRO_FONT *fonte = NULL;
+
+
+// r,g,b values are from 0 to 1
+// h = [0,360], s = [0,1], v = [0,1]
+//		if s == 0, then h = -1 (undefined)
+// void RGBtoHSV( float r, float g, float b, float *h, float *s, float *v )
+// {
+// 	float min, max, delta;
+// 	min = MIN( r, g, b );
+// 	max = MAX( r, g, b );
+// 	*v = max;				// v
+// 	delta = max - min;
+// 	if( max != 0 )
+// 		*s = delta / max;		// s
+// 	else {
+// 		// r = g = b = 0		// s = 0, v is undefined
+// 		*s = 0;
+// 		*h = -1;
+// 		return;
+// 	}
+// 	if( r == max )
+// 		*h = ( g - b ) / delta;		// between yellow & magenta
+// 	else if( g == max )
+// 		*h = 2 + ( b - r ) / delta;	// between cyan & yellow
+// 	else
+// 		*h = 4 + ( r - g ) / delta;	// between magenta & cyan
+// 	*h *= 60;				// degrees
+// 	if( *h < 0 )
+// 		*h += 360;
+// }
+
+// void HSVtoRGB( float *r, float *g, float *b, float h, float s, float v )
+// {
+// 	int i;
+// 	float f, p, q, t;
+// 	if( s == 0 ) {
+// 		// achromatic (grey)
+// 		*r = *g = *b = v;
+// 		return;
+// 	}
+// 	h /= 60;			// sector 0 to 5
+// 	i = floor( h );
+// 	f = h - i;			// factorial part of h
+// 	p = v * ( 1 - s );
+// 	q = v * ( 1 - s * f );
+// 	t = v * ( 1 - s * ( 1 - f ) );
+// 	switch( i ) {
+// 		case 0:
+// 			*r = v;
+// 			*g = t;
+// 			*b = p;
+// 			break;
+// 		case 1:
+// 			*r = q;
+// 			*g = v;
+// 			*b = p;
+// 			break;
+// 		case 2:
+// 			*r = p;
+// 			*g = v;
+// 			*b = t;
+// 			break;
+// 		case 3:
+// 			*r = p;
+// 			*g = q;
+// 			*b = v;
+// 			break;
+// 		case 4:
+// 			*r = t;
+// 			*g = p;
+// 			*b = v;
+// 			break;
+// 		default:		// case 5:
+// 			*r = v;
+// 			*g = p;
+// 			*b = q;
+// 			break;
+// 	}
+// }
+
 
 /* Copia uma matriz de rgb para outra */
 void copia_matriz(camera *cam, unsigned char ***matriz_01, unsigned char ***matriz_02) {
@@ -77,7 +164,7 @@ bool busca_cor(camera *cam, int sensibilidade, unsigned char ***matriz){
 
 	int quantidade = 0;
 
-	printf("NAO TA ENTRANDO AQUI CARALHO\n");
+
 
 	//al_draw_textf(fonte, al_map_rgb(0, 0, 0), 30, 30, ALLEGRO_ALIGN_LEFT, "APONTE O LED VERDE");
 
@@ -87,7 +174,7 @@ bool busca_cor(camera *cam, int sensibilidade, unsigned char ***matriz){
           float g = (cam->quadro[y][x][1]) / 255;
           float b = (cam->quadro[y][x][2]) / 255;
 
-          if(b + g < r) {
+          	if(g < r) {
             //cy += y;
             //cx += x;
             //cn += 1;
@@ -106,8 +193,8 @@ bool busca_cor(camera *cam, int sensibilidade, unsigned char ***matriz){
           }
         }
 
-        printf("saio daqui caraio\n");
-        return true;
+        //printf("saio daqui caraio\n");
+        //return false;
 
        	if(quantidade/sensibilidade > 1)
        		return true;
@@ -119,10 +206,12 @@ bool busca_cor(camera *cam, int sensibilidade, unsigned char ***matriz){
 
 
 
+
 int main (void) {
 	bool finalizado = false;
 	bool renderizar = true;
-    bool movimento = false;
+    bool movimentoPlayer1 = false;
+    //bool movimentoPlayer2 = false;
     int sensibilidade = 100;
 	int range = 70;
 	const int FPS = 60;
@@ -144,8 +233,23 @@ int main (void) {
 		return EXIT_FAILURE;
 	}
 
+	// camera *cam2 = camera_inicializa(1);
+	// if (!cam2) {
+	// 	fprintf(stderr, "Falha ao Inicializar a Segunda Camera\n");
+	// 	return EXIT_FAILURE;
+	// }
+
+	// matriz para a primeira camera
 	unsigned char ***matriz = camera_aloca_matriz(cam);
     unsigned char ***matriz_anterior = camera_aloca_matriz(cam);
+
+    //para a segunda camera
+	//unsigned char ***matriz2 = camera_aloca_matriz(cam2);
+    //unsigned char ***matriz_anterior2 = camera_aloca_matriz(cam2);
+
+
+
+
 
 	if (!al_init()) {
 		fprintf(stderr, "Falha ao Carregar Allegro5\n");
@@ -212,7 +316,9 @@ int main (void) {
 
 	al_start_timer(timer);
     camera_atualiza(cam);
+    //camera_atualiza(cam2);
     copia_matriz(cam, cam->quadro, matriz_anterior);
+    //copia_matriz(cam2, cam2->quadro, matriz_anterior);
 
 	int parado = 0;
 	while(!finalizado) {
@@ -223,10 +329,14 @@ int main (void) {
 			renderizar = true;
 
 			camera_atualiza(cam);
+			//camera_atualiza(cam2);
             
-            movimento = compara_matriz(cam, matriz_anterior, matriz, range, sensibilidade);
+            movimentoPlayer1 = compara_matriz(cam, matriz_anterior, matriz, range, sensibilidade);
+            //movimentoPlayer2 = compara_matriz(cam2, matriz_anterior2, matriz2, range, sensibilidade);
+
 
             copia_matriz(cam, cam->quadro, matriz_anterior);
+            //copia_matriz(cam2, cam2->quadro, matriz_anterior2);
 
 		} else if (evento.type == ALLEGRO_EVENT_DISPLAY_CLOSE) {
 			finalizado = true;
@@ -261,13 +371,16 @@ int main (void) {
 			camera_copia(cam, cam->quadro, imagem_esq);
             camera_copia(cam, matriz, imagem_dir);
 
+            //para duas cameras substituir linha de cima por linha comentada
+            //camera_copia(cam2, cam2,->quadro, imagem_dir);
+
             al_draw_scaled_bitmap(imagem_esq, 0, 0, largCam, altCam, 0, 0, largImg, altImg, 0);
             al_draw_scaled_bitmap(imagem_dir, 0, 0, largCam, altCam, largImg, 0, largImg, altImg, 0);
 
             al_draw_textf(fonte, al_map_rgb(0, 0, 0), 20, ALT - 42, ALLEGRO_ALIGN_LEFT,
 					"Range: %d Sensibilidade: %d  (setas para alterar)", range, sensibilidade);
 
-            if (movimento) {
+            if(movimentoPlayer1) {
                 al_draw_textf(fonte, al_map_rgb(0, 0, 0), 20, 20, ALLEGRO_ALIGN_LEFT,
 				    "Moveu!");
                 parado = 0;
@@ -288,30 +401,49 @@ int main (void) {
 				while(ganhador != 1){
 
 					camera_atualiza(cam);
-					//camera_copia(cam, cam->quadro, imagem_esq);
+					//camera_atualiza(cam2);
+
+					bool Player1_vencedor = busca_cor(cam, 1, matriz);
+					//bool Player2_vencedor = busca_cor(cam2, 1, matriz2);
+
+					camera_copia(cam, cam->quadro, imagem_esq);
+					camera_copia(cam, matriz, imagem_dir);
+
+					//para duas cameras substituir linha de cima por linha comentada
+            		//camera_copia(cam2, cam2,->quadro, imagem_dir);
+
+					al_draw_scaled_bitmap(imagem_esq, 0, 0, largCam, altCam, 0, 0, largImg, altImg, 0);
+            		al_draw_scaled_bitmap(imagem_dir, 0, 0, largCam, altCam, largImg, 0, largImg, altImg, 0);
+
+            		al_draw_textf(fonte, al_map_rgb(0, 0, 0), LARG/4, ALT/4, ALLEGRO_ALIGN_LEFT,"ATIRE");
+
 					al_flip_display();
-					bool foi = busca_cor(cam, 1, matriz);
-				
-					al_draw_textf(fonte, al_map_rgb(0, 0, 0), LARG/4, ALT/4, ALLEGRO_ALIGN_LEFT,"ATIRE");
 
-					camera_copia(cam, cam->quadro, ganha);
-
-					al_draw_scaled_bitmap(ganha, 0, 0, largCam, altCam, 0 , 0, LARG*2, ALT * 2, 0);
-
-					al_flip_display();
-
-					al_rest(10.0);
-
-					if(foi){
-						camera_copia(cam, cam->quadro, ganha);
-						//camera_copia(cam, cam->quadro, imagem_esq);
-						//camera_copia(cam, cam->quadro, imagem_esq_baixo);
-						//camera_copia(cam, matriz, imagem_dir_baixo);
-						al_draw_textf(fonte, al_map_rgb(0, 0, 0), LARG/2, ALT/2, ALLEGRO_ALIGN_LEFT, "VENCEDOR");
+					al_clear_to_color(al_map_rgb(0, 0, 0));
+ 	
+					if(Player1_vencedor){
+						camera_copia(cam, cam->quadro, imagem_esq);
+						camera_copia(cam, cam->quadro, imagem_dir);
+						al_draw_scaled_bitmap(imagem_esq, 0, 0, largCam, altCam, 0, 0, largImg, altImg, 0);
+            			al_draw_scaled_bitmap(imagem_dir, 0, 0, largCam, altCam, largImg, 0, largImg, altImg, 0);
+						al_draw_textf(fonte, al_map_rgb(0, 0, 0), LARG/2 - 50, ALT/2, ALLEGRO_ALIGN_LEFT, "GANHADOR");
 						al_flip_display();
-						// al_rest(10.0);
+
+						al_rest(10.0);
+						ganhador = 1;
 					}		
 
+					// if(Player2_vencedor){
+					// 	camera_copia(cam2, cam2->quadro, imagem_esq);
+					// 	camera_copia(cam2, cam2->quadro, imagem_dir);
+					// 	al_draw_scaled_bitmap(imagem_esq, 0, 0, largCam, altCam, 0, 0, largImg, altImg, 0);
+     //        			al_draw_scaled_bitmap(imagem_dir, 0, 0, largCam, altCam, largImg, 0, largImg, altImg, 0);
+					// 	al_draw_textf(fonte, al_map_rgb(0, 0, 0), LARG/2 - 50, ALT/2, ALLEGRO_ALIGN_LEFT, "GANHADOR");
+					// 	al_flip_display();
+
+					// 	al_rest(10.0);
+					// 	ganhador = 1;
+					// }
 				}
 				al_flip_display();
 			}
@@ -327,6 +459,11 @@ int main (void) {
     camera_libera_matriz(cam, matriz_anterior);
     camera_libera_matriz(cam, matriz);
     camera_finaliza(cam);
+
+    //libera camera 2
+    //camera_libera_matriz(cam2, matriz_anterior2);
+    //camera_libera_matriz(cam2, matriz2);
+    //camera_finaliza(cam2);
 
     al_unregister_event_source(fila_de_eventos, al_get_timer_event_source(timer));
     al_unregister_event_source(fila_de_eventos, al_get_display_event_source(janela));
