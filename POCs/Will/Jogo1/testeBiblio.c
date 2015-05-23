@@ -35,84 +35,53 @@ typedef struct{
 ALLEGRO_FONT *fonte = NULL;
 
 
-// r,g,b values are from 0 to 1
-// h = [0,360], s = [0,1], v = [0,1]
-//		if s == 0, then h = -1 (undefined)
-// void RGBtoHSV( float r, float g, float b, float *h, float *s, float *v )
-// {
-// 	float min, max, delta;
-// 	min = MIN( r, g, b );
-// 	max = MAX( r, g, b );
-// 	*v = max;				// v
-// 	delta = max - min;
-// 	if( max != 0 )
-// 		*s = delta / max;		// s
-// 	else {
-// 		// r = g = b = 0		// s = 0, v is undefined
-// 		*s = 0;
-// 		*h = -1;
-// 		return;
-// 	}
-// 	if( r == max )
-// 		*h = ( g - b ) / delta;		// between yellow & magenta
-// 	else if( g == max )
-// 		*h = 2 + ( b - r ) / delta;	// between cyan & yellow
-// 	else
-// 		*h = 4 + ( r - g ) / delta;	// between magenta & cyan
-// 	*h *= 60;				// degrees
-// 	if( *h < 0 )
-// 		*h += 360;
-// }
+void rgb_hsv(camera *cam, int **matiz, int **iluminacao){
+	for(int i = 0; i < cam->altura; i++){
+		for(int j = 0; j < cam->largura; j++){
+			float r = (float) cam->quadro[i][j][0] / 255;
+			float g = (float) cam->quadro[i][j][1] / 255;
+			float b = (float) cam->quadro[i][j][2] / 255;
 
-// void HSVtoRGB( float *r, float *g, float *b, float h, float s, float v )
-// {
-// 	int i;
-// 	float f, p, q, t;
-// 	if( s == 0 ) {
-// 		// achromatic (grey)
-// 		*r = *g = *b = v;
-// 		return;
-// 	}
-// 	h /= 60;			// sector 0 to 5
-// 	i = floor( h );
-// 	f = h - i;			// factorial part of h
-// 	p = v * ( 1 - s );
-// 	q = v * ( 1 - s * f );
-// 	t = v * ( 1 - s * ( 1 - f ) );
-// 	switch( i ) {
-// 		case 0:
-// 			*r = v;
-// 			*g = t;
-// 			*b = p;
-// 			break;
-// 		case 1:
-// 			*r = q;
-// 			*g = v;
-// 			*b = p;
-// 			break;
-// 		case 2:
-// 			*r = p;
-// 			*g = v;
-// 			*b = t;
-// 			break;
-// 		case 3:
-// 			*r = p;
-// 			*g = q;
-// 			*b = v;
-// 			break;
-// 		case 4:
-// 			*r = t;
-// 			*g = p;
-// 			*b = v;
-// 			break;
-// 		default:		// case 5:
-// 			*r = v;
-// 			*g = p;
-// 			*b = q;
-// 			break;
-// 	}
-// }
+			float max, min, delta;
 
+			if(r > b)
+				max = r;
+			else
+				max = b;
+
+			if(g > max)
+				max = g;
+
+			if(r < b)
+				min = r;
+			else
+				min = b;
+
+			if(g < min)
+				min = g;
+
+			delta = max - min;
+
+			if(max == r){
+				if(g >= b){
+					matiz[i][j] = 60*((g - b)/delta);
+				}
+				else{
+					matiz[i][j] = 360 + 60*((g - b)/delta);
+				}
+			}
+			else if(max == g){
+				matiz[i][j] = 120 + 60*((b - r)/delta);
+			}
+			else{
+				matiz[i][j] = 240 + 60*((r - g)/delta);
+			}
+
+			iluminacao[i][j] = max*100;
+
+		}
+	}
+}
 
 /* Copia uma matriz de rgb para outra */
 void copia_matriz(camera *cam, unsigned char ***matriz_01, unsigned char ***matriz_02) {
@@ -159,41 +128,50 @@ bool compara_matriz(camera *cam, unsigned char ***matriz_original, unsigned char
 
 
 //busca pela cor verde que seria o LED
-
 bool busca_cor(camera *cam, int sensibilidade, unsigned char ***matriz){
 
 	int quantidade = 0;
 
+	int **matiz = malloc(cam->altura*sizeof(int *));
+	int **iluminacao = malloc(cam->altura*sizeof(int *));
+	for(int i=0; i < cam->altura;i++){
+		matiz[i] = malloc(cam->largura*sizeof(int));
+		iluminacao[i] = malloc(cam->largura*sizeof(int));
+	}
+
+
+	rgb_hsv(cam, matiz,iluminacao);
 
 
 	//al_draw_textf(fonte, al_map_rgb(0, 0, 0), 30, 30, ALLEGRO_ALIGN_LEFT, "APONTE O LED VERDE");
 
 	for(int y = 0; y < cam->altura; y++)
         for(int x = 0; x < cam->largura; x++) {
-          float r = (cam->quadro[y][x][0]) / 255;
-          float g = (cam->quadro[y][x][1]) / 255;
-          float b = (cam->quadro[y][x][2]) / 255;
+            int mario = matiz[y][x];
+            int humberto = iluminacao[y][x];
+            //printf("%d\n", humberto);
 
-          	if(g < r) {
-            //cy += y;
-            //cx += x;
-            //cn += 1;
+          	if(mario >= 359 && humberto >= 70) {
 
-            matriz[y][x][0] = 255;
-            matriz[y][x][1] = 255;
-            matriz[y][x][2] = 255;
+          		//printf("%d\n", mario);
+          		//printf("%d\n", humberto);
 
-            quantidade++;
 
-          }
-          else {
-            matriz[y][x][0] = 0;	
-            matriz[y][x][1] = 0;
-            matriz[y][x][2] = 0;
-          }
+           		matriz[y][x][0] = 255;
+            	matriz[y][x][1] = 255;
+            	matriz[y][x][2] = 255;
+
+            	quantidade++;
+
+          	}
+          	else {
+            	matriz[y][x][0] = 0;	
+            	matriz[y][x][1] = 0;
+            	matriz[y][x][2] = 0;
+          	}
         }
 
-        //printf("saio daqui caraio\n");
+        printf("oloko %d\n", quantidade);
         //return false;
 
        	if(quantidade/sensibilidade > 1)
@@ -250,7 +228,6 @@ void jogo() {
     //para a segunda camera
 	unsigned char ***matriz2 = camera_aloca_matriz(cam2);
     unsigned char ***matriz_anterior2 = camera_aloca_matriz(cam2);
-
 
 
 
