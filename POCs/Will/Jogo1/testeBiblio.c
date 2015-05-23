@@ -10,7 +10,7 @@
  * - William Collecta de Alvelos
  *
  *
- * POC de detecção de movimento
+ * POC de detecção de movimento 
  * Compara o frame atual da camera com o frame anterior para detectar se houve movimento
  */
 
@@ -207,13 +207,17 @@ bool busca_cor(camera *cam, int sensibilidade, unsigned char ***matriz){
 
 
 
-int main (void) {
+void jogo() {
 	bool finalizado = false;
 	bool renderizar = true;
     bool movimentoPlayer1 = false;
-    //bool movimentoPlayer2 = false;
+    bool movimentoPlayer2 = false;
     int sensibilidade = 100;
 	int range = 70;
+
+	int pontosPlayer1 = 0;
+	int pontosPlayer2 = 0;
+
 	const int FPS = 60;
         
 	ALLEGRO_DISPLAY *janela = NULL;
@@ -230,22 +234,22 @@ int main (void) {
 	camera *cam = camera_inicializa(0);
 	if (!cam) {
 		fprintf(stderr, "Falha ao Inicializar a Camera\n");
-		return EXIT_FAILURE;
+		//return EXIT_FAILURE;
 	}
 
-	// camera *cam2 = camera_inicializa(1);
-	// if (!cam2) {
-	// 	fprintf(stderr, "Falha ao Inicializar a Segunda Camera\n");
-	// 	return EXIT_FAILURE;
-	// }
+	camera *cam2 = camera_inicializa(1);
+	if (!cam2) {
+		fprintf(stderr, "Falha ao Inicializar a Segunda Camera\n");
+		//return EXIT_FAILURE;
+	}
 
 	// matriz para a primeira camera
 	unsigned char ***matriz = camera_aloca_matriz(cam);
     unsigned char ***matriz_anterior = camera_aloca_matriz(cam);
 
     //para a segunda camera
-	//unsigned char ***matriz2 = camera_aloca_matriz(cam2);
-    //unsigned char ***matriz_anterior2 = camera_aloca_matriz(cam2);
+	unsigned char ***matriz2 = camera_aloca_matriz(cam2);
+    unsigned char ***matriz_anterior2 = camera_aloca_matriz(cam2);
 
 
 
@@ -253,7 +257,7 @@ int main (void) {
 
 	if (!al_init()) {
 		fprintf(stderr, "Falha ao Carregar Allegro5\n");
-		return EXIT_FAILURE;
+		//return EXIT_FAILURE;
 	}
 
 	al_get_display_mode(0, &disp_data);
@@ -267,10 +271,10 @@ int main (void) {
 	const int ALT = altImg;
 
 
-	janela = al_create_display(LARG*2, ALT*2);
+	janela = al_create_display(LARG*2, ALT);
 	if (!janela) {
 		fprintf(stderr, "Falha ao Iniciar Janela\n");
-		return EXIT_FAILURE;
+		//return EXIT_FAILURE;
 	}
 
 
@@ -288,20 +292,20 @@ int main (void) {
 	fila_de_eventos = al_create_event_queue();
 	if (!fila_de_eventos) {
 		fprintf(stderr, "Falha ao Criar Fila de Eventos\n");
-		return EXIT_FAILURE;
+		//return EXIT_FAILURE;
 	}
 
 	timer = al_create_timer(1.0 / FPS);
 	if (!timer) {
 		fprintf(stderr, "Falha ao Criar Timer\n");
-		return EXIT_FAILURE;
+		//return EXIT_FAILURE;
 	}
 
 	fonte = al_load_font("georgiab.ttf", 24, 0);
 	if (!fonte)
 	{
 		fprintf(stderr, "Falha ao Carregar a Fonte\n");
-		return EXIT_FAILURE;
+		//return EXIT_FAILURE;
 	}
 
 	imagem_esq = al_create_bitmap(largCam, altCam);
@@ -329,14 +333,14 @@ int main (void) {
 			renderizar = true;
 
 			camera_atualiza(cam);
-			//camera_atualiza(cam2);
+			camera_atualiza(cam2);
             
             movimentoPlayer1 = compara_matriz(cam, matriz_anterior, matriz, range, sensibilidade);
-            //movimentoPlayer2 = compara_matriz(cam2, matriz_anterior2, matriz2, range, sensibilidade);
+            movimentoPlayer2 = compara_matriz(cam2, matriz_anterior2, matriz2, range, sensibilidade);
 
 
             copia_matriz(cam, cam->quadro, matriz_anterior);
-            //copia_matriz(cam2, cam2->quadro, matriz_anterior2);
+            copia_matriz(cam2, cam2->quadro, matriz_anterior2);
 
 		} else if (evento.type == ALLEGRO_EVENT_DISPLAY_CLOSE) {
 			finalizado = true;
@@ -369,10 +373,10 @@ int main (void) {
 			renderizar = false;
 
 			camera_copia(cam, cam->quadro, imagem_esq);
-            camera_copia(cam, matriz, imagem_dir);
+            //camera_copia(cam, matriz, imagem_dir);
 
             //para duas cameras substituir linha de cima por linha comentada
-            //camera_copia(cam2, cam2,->quadro, imagem_dir);
+            camera_copia(cam2, cam2->quadro, imagem_dir);
 
             al_draw_scaled_bitmap(imagem_esq, 0, 0, largCam, altCam, 0, 0, largImg, altImg, 0);
             al_draw_scaled_bitmap(imagem_dir, 0, 0, largCam, altCam, largImg, 0, largImg, altImg, 0);
@@ -380,7 +384,11 @@ int main (void) {
             al_draw_textf(fonte, al_map_rgb(0, 0, 0), 20, ALT - 42, ALLEGRO_ALIGN_LEFT,
 					"Range: %d Sensibilidade: %d  (setas para alterar)", range, sensibilidade);
 
-            if(movimentoPlayer1) {
+            al_draw_textf(fonte, al_map_rgb(0,0,0), LARG/4 - 122 , 50, ALLEGRO_ALIGN_LEFT, "pontosPlayer1 %d", pontosPlayer1);
+
+            al_draw_textf(fonte, al_map_rgb(0,0,0), LARG - (122 + LARG/4 ) , 50, ALLEGRO_ALIGN_LEFT, "pontosPlayer2 %d", pontosPlayer2);
+
+            if(movimentoPlayer1 || movimentoPlayer2) {
                 al_draw_textf(fonte, al_map_rgb(0, 0, 0), 20, 20, ALLEGRO_ALIGN_LEFT,
 				    "Moveu!");
                 parado = 0;
@@ -401,16 +409,16 @@ int main (void) {
 				while(ganhador != 1){
 
 					camera_atualiza(cam);
-					//camera_atualiza(cam2);
+					camera_atualiza(cam2);
 
 					bool Player1_vencedor = busca_cor(cam, 1, matriz);
-					//bool Player2_vencedor = busca_cor(cam2, 1, matriz2);
+					bool Player2_vencedor = busca_cor(cam2, 1, matriz2);
 
 					camera_copia(cam, cam->quadro, imagem_esq);
-					camera_copia(cam, matriz, imagem_dir);
+					//camera_copia(cam, matriz, imagem_dir);
 
 					//para duas cameras substituir linha de cima por linha comentada
-            		//camera_copia(cam2, cam2,->quadro, imagem_dir);
+            		camera_copia(cam2, cam2->quadro, imagem_dir);
 
 					al_draw_scaled_bitmap(imagem_esq, 0, 0, largCam, altCam, 0, 0, largImg, altImg, 0);
             		al_draw_scaled_bitmap(imagem_dir, 0, 0, largCam, altCam, largImg, 0, largImg, altImg, 0);
@@ -420,38 +428,59 @@ int main (void) {
 					al_flip_display();
 
 					al_clear_to_color(al_map_rgb(0, 0, 0));
+
+					if(Player1_vencedor && Player2_vencedor){
+						camera_copia(cam, cam->quadro, imagem_esq);
+						camera_copia(cam2, cam2->quadro, imagem_dir);
+
+						al_draw_scaled_bitmap(imagem_esq, 0, 0, largCam, altCam, 0, 0, largImg, altImg, 0);
+            			al_draw_scaled_bitmap(imagem_dir, 0, 0, largCam, altCam, largImg, 0, largImg, altImg, 0);
+
+            			al_draw_textf(fonte, al_map_rgb(0, 0, 0), LARG/2 - 50, ALT/2, ALLEGRO_ALIGN_LEFT, "DRAW");
+						al_flip_display();
+
+						al_rest(10.0);
+						ganhador = 1;
+
+					}
  	
 					if(Player1_vencedor){
 						camera_copia(cam, cam->quadro, imagem_esq);
 						camera_copia(cam, cam->quadro, imagem_dir);
 						al_draw_scaled_bitmap(imagem_esq, 0, 0, largCam, altCam, 0, 0, largImg, altImg, 0);
             			al_draw_scaled_bitmap(imagem_dir, 0, 0, largCam, altCam, largImg, 0, largImg, altImg, 0);
-						al_draw_textf(fonte, al_map_rgb(0, 0, 0), LARG/2 - 50, ALT/2, ALLEGRO_ALIGN_LEFT, "GANHADOR");
+
+						al_draw_textf(fonte, al_map_rgb(0, 0, 0), LARG/2 - 50, ALT/2, ALLEGRO_ALIGN_LEFT, "GANHADOR PLAYER 1");
 						al_flip_display();
 
 						al_rest(10.0);
 						ganhador = 1;
+						pontosPlayer1++;
 					}		
 
-					// if(Player2_vencedor){
-					// 	camera_copia(cam2, cam2->quadro, imagem_esq);
-					// 	camera_copia(cam2, cam2->quadro, imagem_dir);
-					// 	al_draw_scaled_bitmap(imagem_esq, 0, 0, largCam, altCam, 0, 0, largImg, altImg, 0);
-     //        			al_draw_scaled_bitmap(imagem_dir, 0, 0, largCam, altCam, largImg, 0, largImg, altImg, 0);
-					// 	al_draw_textf(fonte, al_map_rgb(0, 0, 0), LARG/2 - 50, ALT/2, ALLEGRO_ALIGN_LEFT, "GANHADOR");
-					// 	al_flip_display();
+					if(Player2_vencedor){
+						camera_copia(cam2, cam2->quadro, imagem_esq);
+						camera_copia(cam2, cam2->quadro, imagem_dir);
+						al_draw_scaled_bitmap(imagem_esq, 0, 0, largCam, altCam, 0, 0, largImg, altImg, 0);
+            			al_draw_scaled_bitmap(imagem_dir, 0, 0, largCam, altCam, largImg, 0, largImg, altImg, 0);
+						al_draw_textf(fonte, al_map_rgb(0, 0, 0), LARG/2 - 50, ALT/2, ALLEGRO_ALIGN_LEFT, "GANHADOR PLAYER 2");
+						al_flip_display();
 
-					// 	al_rest(10.0);
-					// 	ganhador = 1;
-					// }
+						al_rest(10.0);
+						ganhador = 1;
+						pontosPlayer2++;
+					}
+
 				}
+
+				camera_atualiza(cam);
+				camera_atualiza(cam2);
 				al_flip_display();
 			}
 			al_flip_display();
 			al_clear_to_color(al_map_rgb(0, 0, 0));
 
 		}
-
 	}
 
 
@@ -461,9 +490,9 @@ int main (void) {
     camera_finaliza(cam);
 
     //libera camera 2
-    //camera_libera_matriz(cam2, matriz_anterior2);
-    //camera_libera_matriz(cam2, matriz2);
-    //camera_finaliza(cam2);
+    camera_libera_matriz(cam2, matriz_anterior2);
+    camera_libera_matriz(cam2, matriz2);
+    camera_finaliza(cam2);
 
     al_unregister_event_source(fila_de_eventos, al_get_timer_event_source(timer));
     al_unregister_event_source(fila_de_eventos, al_get_display_event_source(janela));
@@ -481,5 +510,14 @@ int main (void) {
     
 	al_destroy_display(janela);
 
-    return 0;
+}
+
+
+
+int main(void){
+
+	jogo();
+
+
+	return 0;
 }
